@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:@localhost:3306/7irafi"
+  url      = "mysql://sql8652056:zuaDkVLtxy@sql8.freesqldatabase.com:3306/sql8652056"
 }
 
 enum Role {
