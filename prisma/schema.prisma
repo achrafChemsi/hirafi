@@ -1,0 +1,202 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:@localhost:3306/7irafi"
+}
+
+enum Role {
+  artisan
+  visitor
+}
+
+model User {
+  id         Int          @id @default(autoincrement())
+  name       String       @db.VarChar(20)
+  email      String       @unique @db.VarChar(30)
+  password   String
+  desc       String?      @default(" ") @db.LongText
+  role       Role
+  ImgUrl     String?      @db.VarChar(100)
+  Orders     Order[]
+  Enrollment Enrollment[]
+  Product    Product[]
+  Course     Course[]
+  Comment    Comment[]
+}
+
+model Category {
+  id      Int       @id @default(autoincrement())
+  name    String    @db.VarChar(20)
+  Product Product[]
+  Course  Course[]
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  filename  String
+  path      String
+  productId Int?
+  Product   Product?
+  Course    Course?
+  CourseId  Int?
+
+  @@unique([id, productId])
+  @@unique([id, CourseId])
+}
+
+model Course {
+  id           Int          @id @default(autoincrement())
+  title        String       @db.VarChar(40)
+  desc         String?      @db.LongText
+  published    Boolean      @default(false)
+  Enrollment   Enrollment[]
+  lesson       Lesson[]
+  imageId      Int?         @unique
+  image        Image?       @relation(fields: [imageId], references: [id])
+  UserId       Int
+  User         User         @relation(fields: [UserId], references: [id])
+  categoryId   Int
+  category     Category     @relation(fields: [categoryId], references: [id])
+  quiz         Quiz?
+  LessonsCount Int?         @default(0)
+}
+
+model Quiz {
+  id        Int        @id @default(autoincrement())
+  title     String
+  courseId  Int        @unique
+  Course    Course     @relation(fields: [courseId], references: [id])
+  Questions Question[]
+}
+
+model Question {
+  id      Int      @id @default(autoincrement())
+  text    String   @db.MediumText
+  options Option[]
+  quizId  Int // Reference to the associated quiz's ID
+  quiz    Quiz     @relation(fields: [quizId], references: [id])
+}
+
+model Option {
+  id         Int      @id @default(autoincrement())
+  text       String   @db.MediumText
+  IsCorrect  Boolean  @default(false)
+  questionId Int // Reference to the associated question's ID
+  question   Question @relation(fields: [questionId], references: [id])
+}
+
+model Product {
+  id         Int         @id @default(autoincrement())
+  name       String      @db.VarChar(20)
+  price      Float
+  desc       String      @db.LongText
+  UserId     Int?
+  User       User?       @relation(fields: [UserId], references: [id])
+  categoryId Int
+  category   Category    @relation(fields: [categoryId], references: [id])
+  imageId    Int?        @unique
+  image      Image?      @relation(fields: [imageId], references: [id])
+  OrderItems OrderItem[]
+  Comment    Comment[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.MediumText
+  date      DateTime
+  productId Int
+  Product   Product  @relation(fields: [productId], references: [id])
+  userId    Int
+  User      User     @relation(fields: [userId], references: [id])
+  rate      Int
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  date       DateTime    @db.Date
+  status     STATUS
+  User       User        @relation(fields: [UserId], references: [id])
+  UserId     Int
+  OrderItems OrderItem[]
+  Payment    Payment?
+}
+
+model OrderItem {
+  id          Int     @id @default(autoincrement())
+  quantity    Int
+  total_price Float
+  productId   Int
+  orderId     Int
+  product     Product @relation(fields: [productId], references: [id])
+  order       Order   @relation(fields: [orderId], references: [id])
+}
+
+model Enrollment {
+  id              Int               @id @default(autoincrement())
+  date            DateTime
+  courseId        Int
+  userId          Int
+  progress        Int               @default(0)
+  isCompleted     Boolean?          @default(false)
+  course          Course            @relation(fields: [courseId], references: [id])
+  user            User              @relation(fields: [userId], references: [id])
+  CompletedLesson CompletedLesson[]
+}
+
+model CompletedLesson {
+  id           Int        @id @default(autoincrement())
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  enrollmentId Int
+  completed    Boolean    @default(false)
+  lesson       Lesson     @relation(fields: [lessonId], references: [id])
+  lessonId     Int
+}
+
+model Lesson {
+  id              Int               @id @default(autoincrement())
+  title           String
+  desc            String?           @db.LongText
+  courseId        Int
+  Course          Course            @relation(fields: [courseId], references: [id])
+  LessonImage     LessonImage[]
+  LessonVideo     LessonVideo[]
+  IsIntroduction  Boolean?          @default(false)
+  CompletedLesson CompletedLesson[]
+}
+
+model LessonVideo {
+  id       Int    @id @default(autoincrement())
+  filename String
+  path     String
+  lessonId Int
+  Lesson   Lesson @relation(fields: [lessonId], references: [id])
+}
+
+model LessonImage {
+  id       Int    @id @default(autoincrement())
+  filename String
+  path     String
+  lessonId Int
+  Lesson   Lesson @relation(fields: [lessonId], references: [id])
+}
+
+model Payment {
+  id      Int      @id @default(autoincrement())
+  date    DateTime
+  amount  Float
+  orderId Int      @unique
+  order   Order    @relation(fields: [orderId], references: [id])
+}
+
+enum STATUS {
+  PENDING // La commande a été passée mais n'a pas encore été traitée.
+  PROCESSING // La commande est en cours de préparation et de traitement
+  SHIPPED // La commande a été expédiée et est en transit vers le client
+  DELIVERED // La commande a été livrée avec succès au client
+}
